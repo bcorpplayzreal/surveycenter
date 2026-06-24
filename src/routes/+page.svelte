@@ -199,19 +199,23 @@
           {#if surveys.length === 0}
             <p class="empty-text">No surveys yet.</p>
           {:else}
-            {#each surveys as survey}
-              <div class="survey-item">
-                <h3>{survey.title}</h3>
-                <p>{survey.question}</p>
-  
-                <ul>
-                  <li>{survey.option_1}</li>
-                  <li>{survey.option_2}</li>
-                  <li>{survey.option_3}</li>
-                  <li>{survey.option_4}</li>
-                </ul>
-              </div>
-            {/each}
+          {#each surveys as survey}
+          <div class="survey-item">
+            <h3>{survey.title}</h3>
+            <p>{survey.question}</p>
+        
+            <ul>
+              <li>{survey.option_1}</li>
+              <li>{survey.option_2}</li>
+              <li>{survey.option_3}</li>
+              <li>{survey.option_4}</li>
+            </ul>
+        
+            <a class="survey-link" href={`/survey/${survey.id}`}>
+              Open public survey
+            </a>
+          </div>
+        {/each}
           {/if}
         </div>
   
@@ -432,4 +436,15 @@
       color: #2563eb;
       font-weight: 600;
     }
+.survey-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: #2563eb;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.survey-link:hover {
+  text-decoration: underline;
+}
   </style>
