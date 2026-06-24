@@ -129,7 +129,15 @@
     function totalResponses(survey) {
       return getResponses(survey).length;
     }
-  
+    function percentAnswer(survey, answer) {
+      const total = totalResponses(survey);
+
+  if (total === 0) {
+    return 0;
+  }
+
+  return Math.round((countAnswer(survey, answer) / total) * 100);
+}
     async function createSurvey() {
       message = "";
   
@@ -193,7 +201,7 @@ async function copySurveyLink(survey) {
     <section class="card">
       <div class="header">
         <div class="logo">SC</div>
-        <h1>SurveyCenter</h1>
+        <h1>Survey Center</h1>
         <p>Create and share simple surveys.</p>
       </div>
   
@@ -210,7 +218,7 @@ async function copySurveyLink(survey) {
             Survey title
             <input
               bind:value={title}
-              placeholder="Favorite Programming Language"
+              placeholder="Mustang Math Recruitment Form"
             />
           </label>
   
@@ -218,28 +226,28 @@ async function copySurveyLink(survey) {
             Question
             <input
               bind:value={question}
-              placeholder="Which language do you like most?"
+              placeholder="What teams are you interested in"
             />
           </label>
   
           <label>
             Option 1
-            <input bind:value={option1} placeholder="Python" />
+            <input bind:value={option1} placeholder="Tech" />
           </label>
   
           <label>
             Option 2
-            <input bind:value={option2} placeholder="JavaScript" />
+            <input bind:value={option2} placeholder="Problem Writing" />
           </label>
   
           <label>
             Option 3
-            <input bind:value={option3} placeholder="C++" />
+            <input bind:value={option3} placeholder="Tournament Design" />
           </label>
   
           <label>
             Option 4
-            <input bind:value={option4} placeholder="Java" />
+            <input bind:value={option4} placeholder="Curriculum Development" />
           </label>
   
           <button class="primary-button" onclick={createSurvey}>
@@ -293,23 +301,67 @@ async function copySurveyLink(survey) {
                   </p>
   
                   <div class="result-row">
-                    <span>{survey.option_1}</span>
-                    <strong>{countAnswer(survey, survey.option_1)}</strong>
+                    <div class="result-top">
+                      <span>{survey.option_1}</span>
+                      <strong>
+                        {countAnswer(survey, survey.option_1)} votes · {percentAnswer(survey, survey.option_1)}%
+                      </strong>
+                    </div>
+                  
+                    <div class="bar">
+                      <div
+                        class="bar-fill"
+                        style={`width: ${percentAnswer(survey, survey.option_1)}%`}
+                      ></div>
+                    </div>
                   </div>
-  
+                  
                   <div class="result-row">
-                    <span>{survey.option_2}</span>
-                    <strong>{countAnswer(survey, survey.option_2)}</strong>
+                    <div class="result-top">
+                      <span>{survey.option_2}</span>
+                      <strong>
+                        {countAnswer(survey, survey.option_2)} votes · {percentAnswer(survey, survey.option_2)}%
+                      </strong>
+                    </div>
+                  
+                    <div class="bar">
+                      <div
+                        class="bar-fill"
+                        style={`width: ${percentAnswer(survey, survey.option_2)}%`}
+                      ></div>
+                    </div>
                   </div>
-  
+                  
                   <div class="result-row">
-                    <span>{survey.option_3}</span>
-                    <strong>{countAnswer(survey, survey.option_3)}</strong>
+                    <div class="result-top">
+                      <span>{survey.option_3}</span>
+                      <strong>
+                        {countAnswer(survey, survey.option_3)} votes · {percentAnswer(survey, survey.option_3)}%
+                      </strong>
+                    </div>
+                  
+                    <div class="bar">
+                      <div
+                        class="bar-fill"
+                        style={`width: ${percentAnswer(survey, survey.option_3)}%`}
+                      ></div>
+                    </div>
                   </div>
-  
+                  
                   <div class="result-row">
-                    <span>{survey.option_4}</span>
-                    <strong>{countAnswer(survey, survey.option_4)}</strong>
+                    <div class="result-top">
+                      <span>{survey.option_4}</span>
+                      <strong>
+                        {countAnswer(survey, survey.option_4)} votes · {percentAnswer(survey, survey.option_4)}%
+                      </strong>
+                    </div>
+                  
+                    <div class="bar">
+                      <div
+                        class="bar-fill"
+                        style={`width: ${percentAnswer(survey, survey.option_4)}%`}
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -327,7 +379,7 @@ async function copySurveyLink(survey) {
             <input
               bind:value={email}
               type="email"
-              placeholder="you@example.com"
+              placeholder="MustangMath@email.com"
             />
           </label>
   
@@ -560,22 +612,44 @@ async function copySurveyLink(survey) {
     }
   
     .result-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f1f5f9;
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-    }
-  
-    .result-row span {
-      color: #334155;
-    }
-  
-    .result-row strong {
-      color: #2563eb;
-    }
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.result-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.result-top span {
+  color: #334155;
+  font-weight: 600;
+}
+
+.result-top strong {
+  color: #2563eb;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.bar {
+  width: 100%;
+  height: 10px;
+  background: #dbeafe;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+}
   
     .message {
       margin-top: 18px;
