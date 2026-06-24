@@ -1,16 +1,20 @@
 <script>
+//Hello there MMT 
     import { onMount } from 'svelte';
     import { supabase } from '$lib/supabase';
-  
+
+  //data for login
     let email = $state("");
     let password = $state("");
     let user = $state(null);
     let message = $state("");
   
+    //survey data from Supabase
     let surveys = $state([]);
     let responsesBySurvey = $state({});
     let siteUrl = $state("");
   
+    //new survey form fields
     let title = $state("");
     let question = $state("");
     let option1 = $state("");
@@ -18,6 +22,7 @@
     let option3 = $state("");
     let option4 = $state("");
   
+    //loads the currently lgged in user
     async function loadUser() {
       const { data, error } = await supabase.auth.getUser();
   
@@ -77,7 +82,7 @@
       responsesBySurvey = {};
       message = "Signed out.";
     }
-  
+  //loads surveys that are owned by the signed in user
     async function loadSurveys() {
       if (!user) return;
   
@@ -97,6 +102,7 @@
       await loadAnalytics(data);
     }
   
+    //loads the responses for each survey to calculated analytics
     async function loadAnalytics(surveyList) {
       let newResponsesBySurvey = {};
   
@@ -129,6 +135,7 @@
     function totalResponses(survey) {
       return getResponses(survey).length;
     }
+    //calculates the percentage of responses from an answer choice
     function percentAnswer(survey, answer) {
       const total = totalResponses(survey);
 
@@ -139,6 +146,7 @@
   return Math.round((countAnswer(survey, answer) / total) * 100);
 }
 
+//finds which choice has the most votes. 
 function mostPopularAnswer(survey) {
   const options = [
     survey.option_1,
@@ -165,6 +173,8 @@ function mostPopularAnswer(survey) {
 
   return `${topAnswer} is winning with ${topCount} vote${topCount === 1 ? "" : "s"} (${percentAnswer(survey, topAnswer)}%)`;
 }
+
+//creates new survey and saves to supabase
     async function createSurvey() {
       message = "";
   
