@@ -9,6 +9,7 @@
   
     let surveys = $state([]);
     let responsesBySurvey = $state({});
+    let siteUrl = $state("");
   
     let title = $state("");
     let question = $state("");
@@ -167,8 +168,25 @@
     }
   
     onMount(() => {
-      loadUser();
-    });
+  siteUrl = window.location.origin;
+  loadUser();
+});
+
+function getSurveyUrl(survey) {
+  return `${siteUrl}/survey/${survey.id}`;
+}
+
+async function copySurveyLink(survey) {
+  const url = getSurveyUrl(survey);
+
+  try {
+    await navigator.clipboard.writeText(url);
+    message = "Survey link copied!";
+  } catch (error) {
+    console.log("copy error:", error);
+    message = "Could not copy. You can manually copy the link.";
+  }
+}
   </script>
   
   <main class="page">
@@ -247,9 +265,25 @@
                   <li>{survey.option_4}</li>
                 </ul>
   
-                <a class="survey-link" href={`/survey/${survey.id}`}>
-                  Open public survey
-                </a>
+                <div class="share-box">
+                    <p class="share-label">Share this survey:</p>
+                  
+                    <input
+                      class="share-input"
+                      readonly
+                      value={getSurveyUrl(survey)}
+                    />
+                  
+                    <div class="share-buttons">
+                      <a class="survey-link" href={`/survey/${survey.id}`}>
+                        Open survey
+                      </a>
+                  
+                      <button class="copy-button" onclick={() => copySurveyLink(survey)}>
+                        Copy link
+                      </button>
+                    </div>
+                  </div>
   
                 <div class="analytics-box">
                   <h4>Analytics</h4>
@@ -549,4 +583,44 @@
       color: #2563eb;
       font-weight: 600;
     }
+    .share-box {
+  margin-top: 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.share-label {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.share-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: white;
+  color: #334155;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.share-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.copy-button {
+  background: #2563eb;
+  color: white;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.copy-button:hover {
+  background: #1d4ed8;
+}
   </style>
