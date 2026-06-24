@@ -138,6 +138,33 @@
 
   return Math.round((countAnswer(survey, answer) / total) * 100);
 }
+
+function mostPopularAnswer(survey) {
+  const options = [
+    survey.option_1,
+    survey.option_2,
+    survey.option_3,
+    survey.option_4
+  ];
+
+  let topAnswer = options[0];
+  let topCount = countAnswer(survey, topAnswer);
+
+  for (const option of options) {
+    const count = countAnswer(survey, option);
+
+    if (count > topCount) {
+      topAnswer = option;
+      topCount = count;
+    }
+  }
+
+  if (topCount === 0) {
+    return "No responses yet";
+  }
+
+  return `${topAnswer} is winning with ${topCount} vote${topCount === 1 ? "" : "s"} (${percentAnswer(survey, topAnswer)}%)`;
+}
     async function createSurvey() {
       message = "";
   
@@ -299,7 +326,9 @@ async function copySurveyLink(survey) {
                   <p class="total">
                     Total responses: {totalResponses(survey)}
                   </p>
-  
+                  <p class="top-answer">
+                    Most popular: {mostPopularAnswer(survey)}
+                  </p>
                   <div class="result-row">
                     <div class="result-top">
                       <span>{survey.option_1}</span>
@@ -696,5 +725,15 @@ async function copySurveyLink(survey) {
 
 .copy-button:hover {
   background: #1d4ed8;
+}
+.top-answer {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
 }
   </style>
