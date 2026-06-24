@@ -8,6 +8,7 @@
     let message = $state("");
   
     let surveys = $state([]);
+    let responsesBySurvey = $state({});
   
     let title = $state("");
     let question = $state("");
@@ -72,6 +73,7 @@
       await supabase.auth.signOut();
       user = null;
       surveys = [];
+      responsesBySurvey = {};
       message = "Signed out.";
     }
   
@@ -91,6 +93,40 @@
       }
   
       surveys = data;
+      await loadAnalytics(data);
+    }
+  
+    async function loadAnalytics(surveyList) {
+      let newResponsesBySurvey = {};
+  
+      for (const survey of surveyList) {
+        const { data, error } = await supabase
+          .from('survey_responses')
+          .select('*')
+          .eq('survey_id', survey.id);
+  
+        if (error) {
+          console.log("loadAnalytics error:", error);
+          message = error.message;
+          continue;
+        }
+  
+        newResponsesBySurvey[survey.id] = data;
+      }
+  
+      responsesBySurvey = newResponsesBySurvey;
+    }
+  
+    function getResponses(survey) {
+      return responsesBySurvey[survey.id] || [];
+    }
+  
+    function countAnswer(survey, answer) {
+      return getResponses(survey).filter((response) => response.answer === answer).length;
+    }
+  
+    function totalResponses(survey) {
+      return getResponses(survey).length;
     }
   
     async function createSurvey() {
@@ -199,23 +235,51 @@
           {#if surveys.length === 0}
             <p class="empty-text">No surveys yet.</p>
           {:else}
-          {#each surveys as survey}
-          <div class="survey-item">
-            <h3>{survey.title}</h3>
-            <p>{survey.question}</p>
-        
-            <ul>
-              <li>{survey.option_1}</li>
-              <li>{survey.option_2}</li>
-              <li>{survey.option_3}</li>
-              <li>{survey.option_4}</li>
-            </ul>
-        
-            <a class="survey-link" href={`/survey/${survey.id}`}>
-              Open public survey
-            </a>
-          </div>
-        {/each}
+            {#each surveys as survey}
+              <div class="survey-item">
+                <h3>{survey.title}</h3>
+                <p>{survey.question}</p>
+  
+                <ul>
+                  <li>{survey.option_1}</li>
+                  <li>{survey.option_2}</li>
+                  <li>{survey.option_3}</li>
+                  <li>{survey.option_4}</li>
+                </ul>
+  
+                <a class="survey-link" href={`/survey/${survey.id}`}>
+                  Open public survey
+                </a>
+  
+                <div class="analytics-box">
+                  <h4>Analytics</h4>
+  
+                  <p class="total">
+                    Total responses: {totalResponses(survey)}
+                  </p>
+  
+                  <div class="result-row">
+                    <span>{survey.option_1}</span>
+                    <strong>{countAnswer(survey, survey.option_1)}</strong>
+                  </div>
+  
+                  <div class="result-row">
+                    <span>{survey.option_2}</span>
+                    <strong>{countAnswer(survey, survey.option_2)}</strong>
+                  </div>
+  
+                  <div class="result-row">
+                    <span>{survey.option_3}</span>
+                    <strong>{countAnswer(survey, survey.option_3)}</strong>
+                  </div>
+  
+                  <div class="result-row">
+                    <span>{survey.option_4}</span>
+                    <strong>{countAnswer(survey, survey.option_4)}</strong>
+                  </div>
+                </div>
+              </div>
+            {/each}
           {/if}
         </div>
   
@@ -430,21 +494,59 @@
       color: #64748b;
     }
   
+    .survey-link {
+      display: inline-block;
+      margin-top: 12px;
+      color: #2563eb;
+      font-weight: bold;
+      text-decoration: none;
+    }
+  
+    .survey-link:hover {
+      text-decoration: underline;
+    }
+  
+    .analytics-box {
+      margin-top: 16px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 14px;
+    }
+  
+    .analytics-box h4 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+  
+    .total {
+      margin: 0 0 12px;
+      color: #64748b;
+      font-size: 14px;
+    }
+  
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+  
+    .result-row span {
+      color: #334155;
+    }
+  
+    .result-row strong {
+      color: #2563eb;
+    }
+  
     .message {
       margin-top: 18px;
       text-align: center;
       color: #2563eb;
       font-weight: 600;
     }
-.survey-link {
-  display: inline-block;
-  margin-top: 12px;
-  color: #2563eb;
-  font-weight: bold;
-  text-decoration: none;
-}
-
-.survey-link:hover {
-  text-decoration: underline;
-}
   </style>
