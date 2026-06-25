@@ -538,7 +538,7 @@ async function copySurveyLink(survey) {
             Survey title
             <input
               bind:value={title}
-              placeholder="Mustang Math Recruitment Form"
+              placeholder="Most favorite CS language"
             />
           </label>
   
