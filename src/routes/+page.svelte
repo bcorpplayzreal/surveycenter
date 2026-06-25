@@ -8,7 +8,9 @@
     let password = $state("");
     let user = $state(null);
     let message = $state("");
-  
+    let accountWarning = $state("");
+    let responsesChannel = null;
+
     //survey data from Supabase
     let surveys = $state([]);
     let responsesBySurvey = $state({});
@@ -40,24 +42,34 @@
         await loadSurveys();
       }
     }
-  
-    async function signUp() {
-      message = "";
-  
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password
-      });
-  
-      if (error) {
-        message = error.message;
-        return;
-      }
-  
-      console.log("signUp data:", data);
-      message = "Account created successfully.";
-      await loadUser();
-    }
+    function clearAccountWarning() {
+  accountWarning = "";
+}
+
+//sign up feature woahh so cool ikr
+async function signUp() {
+  message = "";
+  accountWarning = "";
+
+  if (!email.trim() || !password.trim()) {
+    accountWarning = "Please enter your account info first to create an account.";
+    return;
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password
+  });
+
+  if (error) {
+    message = error.message;
+    return;
+  }
+
+  console.log("signUp data:", data);
+  message = "Account created successfully.";
+  await loadUser();
+}
   
     async function signIn() {
       message = "";
@@ -255,8 +267,34 @@ async function createSurvey() {
     onMount(() => {
   siteUrl = window.location.origin;
   loadUser();
+  listenForResponseChanges();
 });
 
+//Auto updates responses
+function listenForResponseChanges() {
+  if (responsesChannel) {
+    return;
+  }
+
+  responsesChannel = supabase
+    .channel('survey-responses-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'survey_responses'
+      },
+      async () => {
+        console.log("New survey response received");
+
+        if (user) {
+          await loadSurveys();
+        }
+      }
+    )
+    .subscribe();
+}
 function getSurveyUrl(survey) {
   return `${siteUrl}/survey/${survey.id}`;
 }
@@ -489,25 +527,30 @@ async function copySurveyLink(survey) {
           <label>
             Email
             <input
-              bind:value={email}
-              type="email"
-              placeholder="MustangMath@email.com"
-            />
+            bind:value={email}
+            oninput={clearAccountWarning}
+            type="email"
+            placeholder="MustangMath@example.com"
+          />
           </label>
   
           <label>
             Password
             <input
-              bind:value={password}
-              type="password"
-              placeholder="Enter your password"
-            />
+            bind:value={password}
+            oninput={clearAccountWarning}
+            type="password"
+            placeholder="Enter your password"
+          />
           </label>
   
           <button class="primary-button" onclick={signIn}>
             Sign in
           </button>
-  
+          {#if accountWarning}
+          <p class="account-warning">{accountWarning}</p>
+        {/if}
+
           <button class="secondary-button" onclick={signUp}>
             Create account
           </button>
@@ -1033,4 +1076,15 @@ button:hover {
     opacity: 0.45;
   }
 }
+.account-warning {
+  background: #fef2f2;
+  border: 2px solid #ef4444;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+}
+
   </style>
