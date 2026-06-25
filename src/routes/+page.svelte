@@ -1,5 +1,5 @@
 <script>
-//Hello there MMT 
+//Hello there MMT, you guys should def let me on the tech team :)
     import { onMount } from 'svelte';
     import { supabase } from '$lib/supabase';
 
@@ -21,6 +21,8 @@
     let option2 = $state("");
     let option3 = $state("");
     let option4 = $state("");
+    //warnings
+    let formWarning = $state("");
   
     //loads the currently lgged in user
     async function loadUser() {
@@ -175,13 +177,14 @@ function mostPopularAnswer(survey) {
 }
 
 //creates new survey and saves to supabase
-    async function createSurvey() {
-      message = "";
-  
-      if (!title || !question || !option1 || !option2 || !option3 || !option4) {
-        message = "Please fill out all survey fields.";
-        return;
-      }
+async function createSurvey() {
+  message = "";
+  formWarning = "";
+
+  if (!title.trim() || !question.trim() || !option1.trim() || !option2.trim() || !option3.trim() || !option4.trim()) {
+    formWarning = "Please fill out every box before creating your survey.";
+    return;
+  }
   
       const { error } = await supabase
         .from('surveys')
@@ -287,9 +290,13 @@ async function copySurveyLink(survey) {
             <input bind:value={option4} placeholder="Curriculum Development" />
           </label>
   
-          <button class="primary-button" onclick={createSurvey}>
-            Create Survey
-          </button>
+          {#if formWarning}
+          <p class="form-warning">{formWarning}</p>
+        {/if}
+        
+        <button class="primary-button" onclick={createSurvey}>
+          Create Survey
+        </button>
         </div>
   
         <div class="my-surveys">
@@ -745,5 +752,15 @@ async function copySurveyLink(survey) {
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 12px;
+}
+.form-warning {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
 }
   </style>
