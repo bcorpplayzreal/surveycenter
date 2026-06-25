@@ -9,8 +9,7 @@
     let user = $state(null);
     let message = $state("");
     let accountWarning = $state("");
-    let responsesChannel = null;
-
+  
     //survey data from Supabase
     let surveys = $state([]);
     let responsesBySurvey = $state({});
@@ -267,34 +266,8 @@ async function createSurvey() {
     onMount(() => {
   siteUrl = window.location.origin;
   loadUser();
-  listenForResponseChanges();
 });
 
-//Auto updates responses
-function listenForResponseChanges() {
-  if (responsesChannel) {
-    return;
-  }
-
-  responsesChannel = supabase
-    .channel('survey-responses-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'survey_responses'
-      },
-      async () => {
-        console.log("New survey response received");
-
-        if (user) {
-          await loadSurveys();
-        }
-      }
-    )
-    .subscribe();
-}
 function getSurveyUrl(survey) {
   return `${siteUrl}/survey/${survey.id}`;
 }
@@ -530,7 +503,7 @@ async function copySurveyLink(survey) {
             bind:value={email}
             oninput={clearAccountWarning}
             type="email"
-            placeholder="MustangMath@example.com"
+            placeholder="Mustang@example.com"
           />
           </label>
   
@@ -1075,6 +1048,8 @@ button:hover {
   .star {
     opacity: 0.45;
   }
+
+  
 }
 .account-warning {
   background: #fef2f2;
@@ -1086,5 +1061,4 @@ button:hover {
   font-weight: 800;
   margin: 0;
 }
-
   </style>
