@@ -4,7 +4,7 @@
     import { supabase } from '$lib/supabase';
 
   //data for login
-    let email = $state("");
+    let username = $state("");
     let password = $state("");
     let user = $state(null);
     let message = $state("");
@@ -44,27 +44,48 @@
     function clearAccountWarning() {
   accountWarning = "";
 }
+//it doesnt work unless i do this but i dont want emails in here anymore :/
+function usernameToEmail(username) {
+  return `${username.trim().toLowerCase()}@surveycenter.local`;
+}
+
+function isValidUsername(username) {
+  return /^[a-zA-Z0-9_]{3,20}$/.test(username.trim());
+}
+
+function getDisplayName() {
+  return user?.user_metadata?.username || user?.email;
+}
 
 //sign up feature woahh so cool ikr
 async function signUp() {
   message = "";
   accountWarning = "";
 
-  if (!email.trim() || !password.trim()) {
-    accountWarning = "Please enter your account info first to create an account.";
+  if (!username.trim() || !password.trim()) {
+    accountWarning = "Please enter an username and a password to create an account.";
     return;
   }
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
-
-  if (error) {
-    message = error.message;
+  if (!isValidUsername(username)) {
+    accountWarning = "Username must be 3-20 characters and can only use letters, numbers, and underscores.";
     return;
-  }
+}
+const fakeEmail = usernameToEmail(username);
 
+const { data, error } = await supabase.auth.signUp({
+  email: fakeEmail,
+  password,
+  options: {
+    data: {
+      username: username.trim()
+    }
+  }
+});
+
+if (error) {
+  message = "Could not create account. Try a different username.";
+  return;
+}
   console.log("signUp data:", data);
   message = "Account created successfully.";
   await loadUser();
@@ -72,14 +93,19 @@ async function signUp() {
   
     async function signIn() {
       message = "";
-  
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-  
+      accountWarning = "";
+      if (!username.trim() || !password.trim()) {
+    accountWarning = "Please enter your username and password to sign in.";
+    return;
+  }
+  const fakeEmail = usernameToEmail(username);
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: fakeEmail,
+    password
+  });
       if (error) {
-        message = error.message;
+        message = "Please check that your username and password is correct, then try again";
         return;
       }
   
@@ -305,8 +331,8 @@ async function copySurveyLink(survey) {
       {#if user}
         <div class="signed-in-box">
           <p>You are signed in as</p>
-          <strong>{user.email}</strong>
-        </div>
+          <strong>{getDisplayName()}</strong>
+            </div>
   <div class="summary-cards">
   <div class="summary-card">
     <span>Total Surveys</span>
@@ -498,12 +524,12 @@ async function copySurveyLink(survey) {
       {:else}
         <div class="form">
           <label>
-            Email
+            Username
             <input
-            bind:value={email}
+            bind:value={username}
             oninput={clearAccountWarning}
-            type="email"
-            placeholder="Mustang@example.com"
+            type="text"
+            placeholder="Mustang"
           />
           </label>
   
