@@ -275,10 +275,19 @@ async function copySurveyLink(survey) {
   </script>
   
   <main class="page">
+    <div class="stars-layer" aria-hidden="true">
+      <span class="star star-1">★</span>
+      <span class="star star-2">✦</span>
+      <span class="star star-3">★</span>
+      <span class="star star-4">✧</span>
+      <span class="star star-5">★</span>
+      <span class="star star-6">✦</span>
+    </div>
+  
     <section class="card">
-      <div class="header">
+            <div class="header">
         <div class="logo">SC</div>
-        <h1>Survey Center</h1>
+        <h1>★ SurveyCenter ★</h1>
         <p>Create and share simple surveys.</p>
       </div>
   
@@ -855,5 +864,173 @@ async function copySurveyLink(survey) {
   display: block;
   font-size: 17px;
   line-height: 1.4;
+}
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 28px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.card {
+  width: 100%;
+  max-width: 1100px;
+  background: white;
+  border: 3px solid #0f172a;
+  border-radius: 10px;
+  padding: 36px;
+  box-shadow: 12px 12px 0 rgba(15, 23, 42, 0.18);
+  position: relative;
+  z-index: 2;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  border: 3px solid #0f172a;
+  box-shadow: 5px 5px 0 #facc15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 22px;
+}
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.summary-card {
+  background: #eff6ff;
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: 5px 5px 0 #bfdbfe;
+}
+
+.summary-card.wide {
+  grid-column: span 2;
+}
+
+.survey-form,
+.my-surveys,
+.signed-in-box {
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 6px 6px 0 #dbeafe;
+}
+
+.survey-form {
+  margin-top: 24px;
+}
+
+.my-surveys {
+  margin-top: 28px;
+}
+
+.survey-item {
+  background: #f8fafc;
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 5px 5px 0 #e0f2fe;
+}
+input,
+select {
+  border: 3px solid #0f172a;
+  border-radius: 6px;
+}
+
+button {
+  border: 3px solid #0f172a;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #0f172a;
+}
+
+button:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0 #0f172a;
+}
+.stars-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.star {
+  position: absolute;
+  color: #facc15;
+  text-shadow: 2px 2px 0 #0f172a;
+  opacity: 0.9;
+}
+
+.star-1 {
+  top: 8%;
+  left: 8%;
+  font-size: 42px;
+}
+
+.star-2 {
+  top: 16%;
+  right: 10%;
+  font-size: 34px;
+}
+
+.star-3 {
+  top: 48%;
+  left: 5%;
+  font-size: 30px;
+}
+
+.star-4 {
+  bottom: 18%;
+  right: 7%;
+  font-size: 46px;
+}
+
+.star-5 {
+  bottom: 8%;
+  left: 18%;
+  font-size: 28px;
+}
+
+.star-6 {
+  top: 68%;
+  right: 18%;
+  font-size: 26px;
+}
+.header h1 {
+  letter-spacing: -1px;
+}
+
+@media (max-width: 800px) {
+  .card {
+    padding: 24px;
+  }
+
+  .summary-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .summary-card.wide {
+    grid-column: span 2;
+  }
+
+  .star {
+    opacity: 0.45;
+  }
 }
   </style>
