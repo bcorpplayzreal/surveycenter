@@ -133,7 +133,44 @@
     function countAnswer(survey, answer) {
       return getResponses(survey).filter((response) => response.answer === answer).length;
     }
-  
+
+    function totalDashboardResponses() {
+  return surveys.reduce((sum, survey) => {
+    return sum + totalResponses(survey);
+  }, 0);
+}
+
+function averageResponsesPerSurvey() {
+  if (surveys.length === 0) {
+    return 0;
+  }
+
+  return (totalDashboardResponses() / surveys.length).toFixed(1);
+}
+
+function mostActiveSurvey() {
+  if (surveys.length === 0) {
+    return "No surveys yet";
+  }
+
+  let topSurvey = surveys[0];
+  let topCount = totalResponses(topSurvey);
+
+  for (const survey of surveys) {
+    const count = totalResponses(survey);
+
+    if (count > topCount) {
+      topSurvey = survey;
+      topCount = count;
+    }
+  }
+
+  if (topCount === 0) {
+    return "No responses yet";
+  }
+
+  return `${topSurvey.title} (${topCount} response${topCount === 1 ? "" : "s"})`;
+}
     function totalResponses(survey) {
       return getResponses(survey).length;
     }
@@ -250,7 +287,27 @@ async function copySurveyLink(survey) {
           <p>You are signed in as</p>
           <strong>{user.email}</strong>
         </div>
-  
+  <div class="summary-cards">
+  <div class="summary-card">
+    <span>Total Surveys</span>
+    <strong>{surveys.length}</strong>
+  </div>
+
+  <div class="summary-card">
+    <span>Total Responses</span>
+    <strong>{totalDashboardResponses()}</strong>
+  </div>
+
+  <div class="summary-card">
+    <span>Average Responses</span>
+    <strong>{averageResponsesPerSurvey()}</strong>
+  </div>
+
+  <div class="summary-card wide">
+    <span>Most Active Survey</span>
+    <strong>{mostActiveSurvey()}</strong>
+  </div>
+</div>
         <div class="survey-form">
           <h2>Create a Survey</h2>
   
@@ -762,5 +819,41 @@ async function copySurveyLink(survey) {
   font-size: 14px;
   font-weight: 700;
   margin: 0;
+}
+.summary-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.summary-card span {
+  display: block;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.summary-card strong {
+  color: #2563eb;
+  font-size: 24px;
+}
+
+.summary-card.wide {
+  grid-column: span 2;
+}
+
+.summary-card.wide strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.4;
 }
   </style>
