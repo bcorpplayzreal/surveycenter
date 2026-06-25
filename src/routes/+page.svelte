@@ -13,15 +13,20 @@
     //survey data from Supabase
     let surveys = $state([]);
     let responsesBySurvey = $state({});
+    let questionsBySurvey = $state({});
     let siteUrl = $state("");
   
     //new survey form fields
     let title = $state("");
-    let question = $state("");
-    let option1 = $state("");
-    let option2 = $state("");
-    let option3 = $state("");
-    let option4 = $state("");
+    let surveyQuestions = $state([
+  {
+    questionText: "",
+    option1: "",
+    option2: "",
+    option3: "",
+    option4: ""
+  }
+]);
     //warnings
     let formWarning = $state("");
   
@@ -143,29 +148,111 @@ if (error) {
   
     //loads the responses for each survey to calculated analytics
     async function loadAnalytics(surveyList) {
-      let newResponsesBySurvey = {};
-  
-      for (const survey of surveyList) {
-        const { data, error } = await supabase
-          .from('survey_responses')
-          .select('*')
-          .eq('survey_id', survey.id);
-  
-        if (error) {
-          console.log("loadAnalytics error:", error);
-          message = error.message;
-          continue;
-        }
-  
-        newResponsesBySurvey[survey.id] = data;
-      }
-  
-      responsesBySurvey = newResponsesBySurvey;
+  let newResponsesBySurvey = {};
+  let newQuestionsBySurvey = {};
+
+  for (const survey of surveyList) {
+    const { data: questionData, error: questionError } = await supabase
+      .from('survey_questions')
+      .select('*')
+      .eq('survey_id', survey.id)
+      .order('order_num', { ascending: true });
+
+    if (questionError) {
+      console.log("loadQuestions error:", questionError);
+      message = questionError.message;
+      continue;
     }
+
+    newQuestionsBySurvey[survey.id] = questionData || [];
+
+    const { data: responseData, error: responseError } = await supabase
+      .from('survey_responses')
+      .select('*')
+      .eq('survey_id', survey.id);
+
+    if (responseError) {
+      console.log("loadResponses error:", responseError);
+      message = responseError.message;
+      continue;
+    }
+
+    newResponsesBySurvey[survey.id] = responseData || [];
+  }
+
+  questionsBySurvey = newQuestionsBySurvey;
+  responsesBySurvey = newResponsesBySurvey;
+}
   
     function getResponses(survey) {
       return responsesBySurvey[survey.id] || [];
     }
+    function getQuestions(survey) {
+  return questionsBySurvey[survey.id] || [];
+}
+
+function getOptionsForQuestion(question) {
+  return [
+    question.option_1,
+    question.option_2,
+    question.option_3,
+    question.option_4
+  ];
+}
+
+function getAnswerForQuestion(response, survey, question) {
+  const questions = getQuestions(survey);
+  const questionIndex = questions.findIndex((q) => q.id === question.id);
+
+  if (response.answers && response.answers[question.id]) {
+    return response.answers[question.id];
+  }
+
+  // This keeps older single-question responses working
+  if (questionIndex === 0 && response.answer) {
+    return response.answer;
+  }
+
+  return "";
+}
+
+function countQuestionAnswer(survey, question, answer) {
+  return getResponses(survey).filter((response) => {
+    return getAnswerForQuestion(response, survey, question) === answer;
+  }).length;
+}
+
+function percentQuestionAnswer(survey, question, answer) {
+  const total = totalResponses(survey);
+
+  if (total === 0) {
+    return 0;
+  }
+
+  return Math.round((countQuestionAnswer(survey, question, answer) / total) * 100);
+}
+
+function mostPopularQuestionAnswer(survey, question) {
+  const options = getOptionsForQuestion(question);
+
+  let topAnswer = options[0];
+  let topCount = countQuestionAnswer(survey, question, topAnswer);
+
+  for (const option of options) {
+    const count = countQuestionAnswer(survey, question, option);
+
+    if (count > topCount) {
+      topAnswer = option;
+      topCount = count;
+    }
+  }
+
+  if (topCount === 0) {
+    return "No responses yet";
+  }
+
+  return `${topAnswer} is winning with ${topCount} vote${topCount === 1 ? "" : "s"} (${percentQuestionAnswer(survey, question, topAnswer)}%)`;
+}
   
     function countAnswer(survey, answer) {
       return getResponses(survey).filter((response) => response.answer === answer).length;
@@ -249,45 +336,129 @@ function mostPopularAnswer(survey) {
 
   return `${topAnswer} is winning with ${topCount} vote${topCount === 1 ? "" : "s"} (${percentAnswer(survey, topAnswer)}%)`;
 }
+//able to add questions
+function addQuestion() {
+  surveyQuestions = [
+    ...surveyQuestions,
+    {
+      questionText: "",
+      option1: "",
+      option2: "",
+      option3: "",
+      option4: ""
+    }
+  ];
+}
+//remove questions
+function removeQuestion(index) {
+  if (surveyQuestions.length === 1) {
+    message = "A survey needs at least one question.";
+    return;
+  }
+
+  surveyQuestions = surveyQuestions.filter((_, i) => i !== index);
+}
+//id say the rest are self explaning
+function updateQuestion(index, field, value) {
+  surveyQuestions = surveyQuestions.map((q, i) => {
+    if (i === index) {
+      return {
+        ...q,
+        [field]: value
+      };
+    }
+
+    return q;
+  });
+}
+
+function resetSurveyQuestions() {
+  surveyQuestions = [
+    {
+      questionText: "",
+      option1: "",
+      option2: "",
+      option3: "",
+      option4: ""
+    }
+  ];
+}
 
 //creates new survey and saves to supabase
 async function createSurvey() {
   message = "";
   formWarning = "";
 
-  if (!title.trim() || !question.trim() || !option1.trim() || !option2.trim() || !option3.trim() || !option4.trim()) {
-    formWarning = "Please fill out every box before creating your survey.";
+  if (!title.trim()) {
+    formWarning = "Please enter a survey title.";
     return;
   }
-  
-      const { error } = await supabase
-        .from('surveys')
-        .insert({
-          title,
-          question,
-          option_1: option1,
-          option_2: option2,
-          option_3: option3,
-          option_4: option4
-        });
-  
-      if (error) {
-        console.log("createSurvey error:", error);
-        message = error.message;
-        return;
-      }
-  
-      message = "Survey created successfully.";
-  
-      title = "";
-      question = "";
-      option1 = "";
-      option2 = "";
-      option3 = "";
-      option4 = "";
-  
-      await loadSurveys();
+
+  for (const q of surveyQuestions) {
+    if (
+      !q.questionText.trim() ||
+      !q.option1.trim() ||
+      !q.option2.trim() ||
+      !q.option3.trim() ||
+      !q.option4.trim()
+    ) {
+      formWarning = "Please fill out every question and answer choice.";
+      return;
     }
+  }
+
+  const firstQuestion = surveyQuestions[0];
+
+  const { data: surveyData, error: surveyError } = await supabase
+    .from('surveys')
+    .insert({
+      title: title.trim(),
+
+      // These keep the old surveys table compatible
+      question: firstQuestion.questionText.trim(),
+      option_1: firstQuestion.option1.trim(),
+      option_2: firstQuestion.option2.trim(),
+      option_3: firstQuestion.option3.trim(),
+      option_4: firstQuestion.option4.trim()
+    })
+    .select()
+    .single();
+
+  if (surveyError) {
+    console.log("createSurvey error:", surveyError);
+    message = surveyError.message;
+    return;
+  }
+
+  const questionRows = surveyQuestions.map((q, index) => {
+    return {
+      survey_id: surveyData.id,
+      question_text: q.questionText.trim(),
+      option_1: q.option1.trim(),
+      option_2: q.option2.trim(),
+      option_3: q.option3.trim(),
+      option_4: q.option4.trim(),
+      order_num: index + 1
+    };
+  });
+
+  const { error: questionsError } = await supabase
+    .from('survey_questions')
+    .insert(questionRows);
+
+  if (questionsError) {
+    console.log("create questions error:", questionsError);
+    message = questionsError.message;
+    return;
+  }
+
+  message = "Survey created successfully.";
+
+  title = "";
+  resetSurveyQuestions();
+
+  await loadSurveys();
+}
   
     onMount(() => {
   siteUrl = window.location.origin;
@@ -319,6 +490,12 @@ async function copySurveyLink(survey) {
       <span class="star star-4">✧</span>
       <span class="star star-5">★</span>
       <span class="star star-6">✦</span>
+      <span class="star star-7">✧</span>
+      <span class="star star-8">★</span>
+      <span class="star star-9">✦</span>
+      <span class="star star-10">★</span>
+      <span class="star star-11">✧</span>
+      <span class="star star-12">✦</span>
     </div>
   
     <section class="card">
@@ -365,34 +542,71 @@ async function copySurveyLink(survey) {
             />
           </label>
   
-          <label>
-            Question
-            <input
-              bind:value={question}
-              placeholder="What teams are you interested in"
-            />
-          </label>
-  
-          <label>
-            Option 1
-            <input bind:value={option1} placeholder="Tech" />
-          </label>
-  
-          <label>
-            Option 2
-            <input bind:value={option2} placeholder="Problem Writing" />
-          </label>
-  
-          <label>
-            Option 3
-            <input bind:value={option3} placeholder="Tournament Design" />
-          </label>
-  
-          <label>
-            Option 4
-            <input bind:value={option4} placeholder="Curriculum Development" />
-          </label>
-  
+          {#each surveyQuestions as q, index}
+          <div class="question-block">
+            <div class="question-block-header">
+              <h3>Question {index + 1}</h3>
+        
+              {#if surveyQuestions.length > 1}
+                <button
+                  class="small-danger-button"
+                  onclick={() => removeQuestion(index)}
+                >
+                  Remove
+                </button>
+              {/if}
+            </div>
+        
+            <label>
+              Question
+              <input
+                value={q.questionText}
+                oninput={(event) => updateQuestion(index, "questionText", event.target.value)}
+                placeholder="Which language do you like most?"
+              />
+            </label>
+        
+            <label>
+              Option 1
+              <input
+                value={q.option1}
+                oninput={(event) => updateQuestion(index, "option1", event.target.value)}
+                placeholder="Python"
+              />
+            </label>
+        
+            <label>
+              Option 2
+              <input
+                value={q.option2}
+                oninput={(event) => updateQuestion(index, "option2", event.target.value)}
+                placeholder="JavaScript"
+              />
+            </label>
+        
+            <label>
+              Option 3
+              <input
+                value={q.option3}
+                oninput={(event) => updateQuestion(index, "option3", event.target.value)}
+                placeholder="C++"
+              />
+            </label>
+        
+            <label>
+              Option 4
+              <input
+                value={q.option4}
+                oninput={(event) => updateQuestion(index, "option4", event.target.value)}
+                placeholder="Java"
+              />
+            </label>
+          </div>
+        {/each}
+        
+        <button class="secondary-button" onclick={addQuestion}>
+          Add Question
+        </button>
           {#if formWarning}
           <p class="form-warning">{formWarning}</p>
         {/if}
@@ -440,79 +654,45 @@ async function copySurveyLink(survey) {
                     </div>
                   </div>
   
-                <div class="analytics-box">
-                  <h4>Analytics</h4>
-  
-                  <p class="total">
-                    Total responses: {totalResponses(survey)}
-                  </p>
-                  <p class="top-answer">
-                    Most popular: {mostPopularAnswer(survey)}
-                  </p>
-                  <div class="result-row">
-                    <div class="result-top">
-                      <span>{survey.option_1}</span>
-                      <strong>
-                        {countAnswer(survey, survey.option_1)} votes · {percentAnswer(survey, survey.option_1)}%
-                      </strong>
-                    </div>
+                  <div class="analytics-box">
+                    <h4>Analytics</h4>
                   
-                    <div class="bar">
-                      <div
-                        class="bar-fill"
-                        style={`width: ${percentAnswer(survey, survey.option_1)}%`}
-                      ></div>
-                    </div>
+                    <p class="total">
+                      Total responses: {totalResponses(survey)}
+                    </p>
+                  
+                    {#each getQuestions(survey) as question, questionIndex}
+                      <div class="question-analytics">
+                        <h5>Question {questionIndex + 1}</h5>
+                  
+                        <p class="analytics-question">
+                          {question.question_text}
+                        </p>
+                  
+                        <p class="top-answer">
+                          Most popular: {mostPopularQuestionAnswer(survey, question)}
+                        </p>
+                  
+                        {#each getOptionsForQuestion(question) as option}
+                          <div class="result-row">
+                            <div class="result-top">
+                              <span>{option}</span>
+                              <strong>
+                                {countQuestionAnswer(survey, question, option)} votes · {percentQuestionAnswer(survey, question, option)}%
+                              </strong>
+                            </div>
+                  
+                            <div class="bar">
+                              <div
+                                class="bar-fill"
+                                style={`width: ${percentQuestionAnswer(survey, question, option)}%`}
+                              ></div>
+                            </div>
+                          </div>
+                        {/each}
+                      </div>
+                    {/each}
                   </div>
-                  
-                  <div class="result-row">
-                    <div class="result-top">
-                      <span>{survey.option_2}</span>
-                      <strong>
-                        {countAnswer(survey, survey.option_2)} votes · {percentAnswer(survey, survey.option_2)}%
-                      </strong>
-                    </div>
-                  
-                    <div class="bar">
-                      <div
-                        class="bar-fill"
-                        style={`width: ${percentAnswer(survey, survey.option_2)}%`}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div class="result-row">
-                    <div class="result-top">
-                      <span>{survey.option_3}</span>
-                      <strong>
-                        {countAnswer(survey, survey.option_3)} votes · {percentAnswer(survey, survey.option_3)}%
-                      </strong>
-                    </div>
-                  
-                    <div class="bar">
-                      <div
-                        class="bar-fill"
-                        style={`width: ${percentAnswer(survey, survey.option_3)}%`}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div class="result-row">
-                    <div class="result-top">
-                      <span>{survey.option_4}</span>
-                      <strong>
-                        {countAnswer(survey, survey.option_4)} votes · {percentAnswer(survey, survey.option_4)}%
-                      </strong>
-                    </div>
-                  
-                    <div class="bar">
-                      <div
-                        class="bar-fill"
-                        style={`width: ${percentAnswer(survey, survey.option_4)}%`}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
               </div>
             {/each}
           {/if}
@@ -1005,6 +1185,7 @@ button:hover {
   transform: translate(1px, 1px);
   box-shadow: 3px 3px 0 #0f172a;
 }
+
 .stars-layer {
   position: fixed;
   inset: 0;
@@ -1054,6 +1235,48 @@ button:hover {
   right: 18%;
   font-size: 26px;
 }
+.star-7 {
+  top: 28%;
+  left: 20%;
+  font-size: 22px;
+}
+
+.star-8 {
+  top: 34%;
+  right: 24%;
+  font-size: 24px;
+}
+
+.star-9 {
+  bottom: 32%;
+  left: 10%;
+  font-size: 20px;
+}
+
+.star-10 {
+  bottom: 28%;
+  right: 28%;
+  font-size: 30px;
+}
+
+.star-11 {
+  top: 82%;
+  right: 42%;
+  font-size: 22px;
+}
+
+.star-12 {
+  top: 6%;
+  left: 42%;
+  font-size: 26px;
+}
+.star {
+  position: absolute;
+  color: #facc15;
+  text-shadow: 2px 2px 0 #0f172a;
+  opacity: 0.9;
+  animation: twinkle 3s ease-in-out infinite;
+}
 .header h1 {
   letter-spacing: -1px;
 }
@@ -1086,5 +1309,69 @@ button:hover {
   font-size: 14px;
   font-weight: 800;
   margin: 0;
+}
+.question-block {
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  padding: 18px;
+  background: #f8fafc;
+  box-shadow: 5px 5px 0 #dbeafe;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.question-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.question-block-header h3 {
+  margin: 0;
+}
+
+.small-danger-button {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 3px solid #991b1b;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.question-analytics {
+  margin-top: 16px;
+  background: #f8fafc;
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 4px 4px 0 #dbeafe;
+}
+
+.question-analytics h5 {
+  margin: 0 0 8px;
+  color: #2563eb;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.analytics-question {
+  margin: 0 0 12px;
+  color: #334155;
+  font-weight: 800;
+}
+@keyframes twinkle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
 }
   </style>

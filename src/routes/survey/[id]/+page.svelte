@@ -3,70 +3,110 @@
   import { supabase } from '$lib/supabase';
 
   let survey = $state(null);
-  let selectedAnswer = $state("");
+  let questions = $state([]);
+  let selectedAnswers = $state({});
   let message = $state("");
   let loading = $state(true);
   let alreadySubmitted = $state(false);
   let submitting = $state(false);
 
-  function getOptions(survey) {
+  function getOptions(question) {
     return [
-      survey.option_1,
-      survey.option_2,
-      survey.option_3,
-      survey.option_4
+      question.option_1,
+      question.option_2,
+      question.option_3,
+      question.option_4
     ];
+  }
+
+  function updateAnswer(questionId, answer) {
+    selectedAnswers = {
+      ...selectedAnswers,
+      [questionId]: answer
+    };
+
+    message = "";
+  }
+
+  function allQuestionsAnswered() {
+    return questions.every((question) => selectedAnswers[question.id]);
   }
 
   async function loadSurvey() {
     const surveyId = window.location.pathname.split('/').pop();
 
-    const { data, error } = await supabase
+    const { data: surveyData, error: surveyError } = await supabase
       .from('surveys')
       .select('*')
       .eq('id', surveyId)
       .eq('is_published', true)
       .single();
 
-    if (error) {
-      console.log("loadSurvey error:", error);
+    if (surveyError) {
+      console.log("loadSurvey error:", surveyError);
       message = "Survey not found.";
       loading = false;
       return;
     }
 
-    survey = data;
+    survey = surveyData;
+
+    const { data: questionData, error: questionError } = await supabase
+      .from('survey_questions')
+      .select('*')
+      .eq('survey_id', surveyId)
+      .order('order_num', { ascending: true });
+
+    if (questionError) {
+      console.log("loadQuestions error:", questionError);
+      message = "Could not load survey questions.";
+      loading = false;
+      return;
+    }
+
+    questions = questionData;
     loading = false;
   }
 
   async function submitResponse() {
-    message = "";
+  message = "";
 
-    if (!selectedAnswer) {
-      message = "Please choose an answer before submitting.";
-      return;
-    }
-
-    submitting = true;
-
-    const { error } = await supabase
-      .from('survey_responses')
-      .insert({
-        survey_id: survey.id,
-        answer: selectedAnswer
-      });
-
-    submitting = false;
-
-    if (error) {
-      console.log("submitResponse error:", error);
-      message = error.message;
-      return;
-    }
-
-    alreadySubmitted = true;
-    message = "Thank you for your response!";
+  if (!allQuestionsAnswered()) {
+    message = "Please answer every question before submitting.";
+    return;
   }
+
+  submitting = true;
+
+  const firstQuestion = questions[0];
+  const firstAnswer = selectedAnswers[firstQuestion.id];
+
+  const responseToSave = {
+    survey_id: survey.id,
+    answer: firstAnswer,
+    answers: { ...selectedAnswers }
+  };
+
+  console.log("Saving response:", responseToSave);
+
+  const { data, error } = await supabase
+    .from('survey_responses')
+    .insert(responseToSave)
+    .select();
+
+  submitting = false;
+
+  if (error) {
+    console.log("submitResponse error:", error);
+    message = error.message;
+    return;
+  }
+
+  console.log("Saved response:", data);
+
+  alreadySubmitted = true;
+  message = "Thank you for your response!";
+}
 
   onMount(() => {
     loadSurvey();
@@ -89,7 +129,9 @@
       <div class="survey-header">
         <p class="eyebrow">Public Survey</p>
         <h1>{survey.title}</h1>
-        <p class="question">{survey.question}</p>
+        <p class="question-count">
+          {questions.length} question{questions.length === 1 ? "" : "s"}
+        </p>
       </div>
 
       {#if alreadySubmitted}
@@ -99,18 +141,30 @@
           <p>Thanks for answering this survey.</p>
         </div>
       {:else}
-        <div class="options">
-          {#each getOptions(survey) as option}
-            <label class:selected={selectedAnswer === option} class="option-card">
-              <input
-                type="radio"
-                bind:group={selectedAnswer}
-                value={option}
-              />
+        <div class="questions">
+          {#each questions as question, index}
+            <div class="question-card">
+              <h2>Question {index + 1}</h2>
+              <p class="question-text">{question.question_text}</p>
 
-              <span class="radio-dot"></span>
-              <span>{option}</span>
-            </label>
+              <div class="options">
+                {#each getOptions(question) as option}
+                  <label
+                    class={`option-card ${selectedAnswers[question.id] === option ? "selected" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name={question.id}
+                      checked={selectedAnswers[question.id] === option}
+                      onchange={() => updateAnswer(question.id, option)}
+                    />
+
+                    <span class="radio-dot"></span>
+                    <span>{option}</span>
+                  </label>
+                {/each}
+              </div>
+            </div>
           {/each}
         </div>
 
@@ -119,7 +173,7 @@
           onclick={submitResponse}
           disabled={submitting}
         >
-          {submitting ? "Submitting..." : "Submit Answer"}
+          {submitting ? "Submitting..." : "Submit Survey"}
         </button>
       {/if}
     {/if}
@@ -148,19 +202,19 @@
   .page {
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 24px;
+    padding: 40px 24px;
   }
 
   .card {
     width: 100%;
-    max-width: 520px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    border-radius: 28px;
+    max-width: 760px;
+    background: white;
+    border: 3px solid #0f172a;
+    border-radius: 10px;
     padding: 34px;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+    box-shadow: 12px 12px 0 rgba(15, 23, 42, 0.18);
   }
 
   .top-badge {
@@ -169,19 +223,21 @@
     gap: 10px;
     margin-bottom: 28px;
     color: #2563eb;
-    font-weight: 800;
+    font-weight: 900;
   }
 
   .logo {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     background: #2563eb;
     color: white;
+    border: 3px solid #0f172a;
+    box-shadow: 4px 4px 0 #facc15;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
+    font-weight: 900;
   }
 
   .survey-header {
@@ -194,57 +250,78 @@
     margin: 0 0 12px;
     background: #eff6ff;
     color: #2563eb;
-    border: 1px solid #bfdbfe;
+    border: 2px solid #bfdbfe;
     border-radius: 999px;
     padding: 6px 12px;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 900;
   }
 
   h1 {
     margin: 0;
-    font-size: 34px;
+    font-size: 36px;
     line-height: 1.1;
   }
 
-  .question {
-    margin: 14px 0 0;
-    color: #475569;
+  .question-count {
+    margin: 12px 0 0;
+    color: #64748b;
+    font-weight: 700;
+  }
+
+  .questions {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+
+  .question-card {
+    background: #f8fafc;
+    border: 3px solid #0f172a;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 6px 6px 0 #dbeafe;
+  }
+
+  .question-card h2 {
+    margin: 0 0 8px;
+    color: #2563eb;
+    font-size: 20px;
+  }
+
+  .question-text {
+    margin: 0 0 16px;
+    color: #334155;
     font-size: 18px;
-    line-height: 1.5;
+    font-weight: 800;
   }
 
   .options {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 22px;
   }
 
   .option-card {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: #f8fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 16px;
+    background: white;
+    border: 3px solid #0f172a;
+    border-radius: 8px;
+    padding: 14px;
     cursor: pointer;
-    transition:
-      border-color 0.15s ease,
-      background 0.15s ease,
-      transform 0.15s ease;
+    box-shadow: 4px 4px 0 #e2e8f0;
   }
 
   .option-card:hover {
-    border-color: #93c5fd;
     background: #eff6ff;
-    transform: translateY(-1px);
   }
 
   .option-card.selected {
-    border-color: #2563eb;
     background: #eff6ff;
+    box-shadow: 4px 4px 0 #93c5fd;
   }
 
   .option-card input {
@@ -254,39 +331,42 @@
   .radio-dot {
     width: 18px;
     height: 18px;
-    border: 2px solid #94a3b8;
+    border: 3px solid #0f172a;
     border-radius: 50%;
+    background: white;
     flex-shrink: 0;
   }
 
   .option-card.selected .radio-dot {
-    border: 6px solid #2563eb;
+    background: #2563eb;
+    box-shadow: inset 0 0 0 4px white;
   }
 
   .option-card span:last-child {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 800;
     color: #334155;
   }
 
   button {
-    border: none;
-    border-radius: 14px;
+    border: 3px solid #0f172a;
+    border-radius: 8px;
     padding: 14px 16px;
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 900;
     cursor: pointer;
     width: 100%;
+    box-shadow: 5px 5px 0 #0f172a;
   }
 
   .primary-button {
     background: #2563eb;
     color: white;
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
   }
 
   .primary-button:hover {
-    background: #1d4ed8;
+    transform: translate(1px, 1px);
+    box-shadow: 4px 4px 0 #0f172a;
   }
 
   .primary-button:disabled {
@@ -297,24 +377,26 @@
 
   .thank-you {
     background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 20px;
+    border: 3px solid #166534;
+    border-radius: 8px;
     padding: 26px;
     text-align: center;
+    box-shadow: 6px 6px 0 #bbf7d0;
   }
 
   .checkmark {
     width: 54px;
     height: 54px;
     margin: 0 auto 14px;
-    border-radius: 50%;
+    border-radius: 8px;
     background: #16a34a;
     color: white;
+    border: 3px solid #0f172a;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 30px;
-    font-weight: bold;
+    font-weight: 900;
   }
 
   .thank-you h2 {
@@ -324,6 +406,7 @@
   .thank-you p {
     margin: 0;
     color: #166534;
+    font-weight: 700;
   }
 
   .loading-box {
@@ -352,7 +435,7 @@
     margin-top: 18px;
     text-align: center;
     color: #2563eb;
-    font-weight: 700;
+    font-weight: 900;
   }
 
   .back-link {
@@ -360,7 +443,7 @@
     margin-top: 24px;
     text-align: center;
     color: #2563eb;
-    font-weight: 800;
+    font-weight: 900;
     text-decoration: none;
   }
 
