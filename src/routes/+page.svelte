@@ -538,7 +538,7 @@ async function copySurveyLink(survey) {
             Survey title
             <input
               bind:value={title}
-              placeholder="Most favorite CS language"
+              placeholder="Type Here"
             />
           </label>
   
@@ -562,8 +562,8 @@ async function copySurveyLink(survey) {
               <input
                 value={q.questionText}
                 oninput={(event) => updateQuestion(index, "questionText", event.target.value)}
-                placeholder="Which language do you like most?"
-              />
+                placeholder="Type Here"
+                />
             </label>
         
             <label>
@@ -571,8 +571,8 @@ async function copySurveyLink(survey) {
               <input
                 value={q.option1}
                 oninput={(event) => updateQuestion(index, "option1", event.target.value)}
-                placeholder="Python"
-              />
+                placeholder="Type Here"
+                />
             </label>
         
             <label>
@@ -580,8 +580,8 @@ async function copySurveyLink(survey) {
               <input
                 value={q.option2}
                 oninput={(event) => updateQuestion(index, "option2", event.target.value)}
-                placeholder="JavaScript"
-              />
+                placeholder="Type Here"
+                />
             </label>
         
             <label>
@@ -589,8 +589,8 @@ async function copySurveyLink(survey) {
               <input
                 value={q.option3}
                 oninput={(event) => updateQuestion(index, "option3", event.target.value)}
-                placeholder="C++"
-              />
+                placeholder="Type Here"
+                />
             </label>
         
             <label>
@@ -598,8 +598,8 @@ async function copySurveyLink(survey) {
               <input
                 value={q.option4}
                 oninput={(event) => updateQuestion(index, "option4", event.target.value)}
-                placeholder="Java"
-              />
+                placeholder="Type Here"
+                />
             </label>
           </div>
         {/each}
