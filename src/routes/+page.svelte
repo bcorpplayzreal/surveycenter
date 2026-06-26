@@ -743,8 +743,10 @@ async function copySurveyLink(survey) {
   </main>
   
   <style>
+  @import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&display=swap');
     :global(body) {
       margin: 0;
+
       font-family: Arial, Helvetica, sans-serif;
       background:
         radial-gradient(circle at top left, #dbeafe, transparent 30%),

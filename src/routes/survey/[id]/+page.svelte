@@ -191,7 +191,7 @@
 <style>
   :global(body) {
     margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, sans-serif, "Architects Daughter";
     background:
       radial-gradient(circle at top left, #bfdbfe, transparent 32%),
       radial-gradient(circle at bottom right, #dbeafe, transparent 28%),
